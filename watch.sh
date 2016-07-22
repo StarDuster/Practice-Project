@@ -3,7 +3,7 @@ CON_NEW=$(netstat -s | grep 'active connections openings' | awk '{print $1}')
 COUNT=0
 until [ $COUNT -eq 3 ];
 do
-    echo -e "active connections:$CON, delta $[CON_NEW - CON]";
+    echo -e "active connections:$CON_NEW, delta $[CON_NEW - CON]";
     sleep 1;
     CON=$CON_NEW;
     CON_NEW=$(netstat -s | grep 'active connections openings' | awk '{print $1}')
