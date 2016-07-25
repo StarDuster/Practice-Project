@@ -60,7 +60,7 @@ function run_test()
 
     echo -e "testing...logging to $LOG_PATH/ \n"
         for (( i=1; i<$[PROCESS_NUM+1]; i=i+1 )); do
-            LOG_NAME=$LOG_PATH/$PROTOCOL-$REQ@$CON-$TAG$TIME-$i-of-$PROCESS_NUM.log
+            LOG_NAME=$LOG_PATH/$PROTOCOL-$REQ@$CON-$TAG$TIME$LONG-$i-of-$PROCESS_NUM.log
             ab -s 120 -r $LONG -n $REQ -c $CON $PROTOCOL://test.starduster.me/  > $LOG_NAME &  
             #tee - $LOG_NAME
         done
