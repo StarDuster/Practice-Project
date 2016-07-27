@@ -72,6 +72,5 @@ function run_test()
     echo -e "\ndone,the mean RPS is $MEAN_TIME\n"
 }
 
-
 #entrance of this script:
 run_test
