@@ -20,7 +20,6 @@ function calc()
 function run_test()
 {
     TIME=`date | cut -d " " -f 4`
-    TMP=/tmp/$TIME.tmp
 
     echo -e "\nnow is $TIME \n"
     read -p "input the concurrency:" CON
@@ -64,7 +63,7 @@ function run_test()
     echo -e "testing...logging to $LOG_PATH/ \n"
         for (( i=1; i<$[PROCESS_NUM+1]; i=i+1 )); do
             LOG_NAME=$LOG_PATH/$PROTOCOL-$REQ@$CON-$TAG$TIME$LONG-$i-of-$PROCESS_NUM.log
-            ab -s 120 -r $LONG -n $REQ -c $CON $PROTOCOL://test.starduster.me/ > $TMP &
+            ab -s 120 -r $LONG -n $REQ -c $CON $PROTOCOL://test.starduster.me/  &
         done
     wait
     RUN_TIME=`cat $TMP | grep "Time taken" | awk '{print $5}'`
@@ -72,6 +71,7 @@ function run_test()
     MEAN_TIME=`calc $COMPLETE_REQ/$RUN_TIME`
     echo -e "\ndone,the mean RPS is $MEAN_TIME\n"
 }
+
 
 #entrance of this script:
 run_test
