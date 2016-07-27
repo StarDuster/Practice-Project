@@ -8,7 +8,7 @@ LOG_NAME=$LOG_PATH/connections-$TIME.log
 
 CON_NEW=$(netstat -s | grep 'active connections openings' | awk '{print $1}')
 COUNT=0
-until [ $COUNT -eq 3 ];
+until [ $COUNT -eq 30 ];
 do
     echo -e "active connections:$CON_NEW, delta $[CON_NEW - CON] 
     \n`netstat -n | awk '/^tcp/ {++S[$NF]} END {for(a in S) print a, S[a]}'` " | tee -a $LOG_NAME;
@@ -23,6 +23,6 @@ do
     fi
 done 
 
-echo -e "connections lasts at $CON for 3s,exit\n"
+echo -e "connections lasts at $CON for 30s,exit\n"
 
 
