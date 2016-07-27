@@ -14,7 +14,7 @@ while : ;
 do
     echo -e "active connections:$CON_NEW, delta $[CON_NEW - CON]
     \npassive connections:$CON2_NEW, delta $[CON2_NEW - CON2]
-    \n`netstat -n | awk '/^tcp/ {++S[$NF]} END {for(a in S) print a, S[a]}'` ";
+    \n`netstat -n | grep -iv 127.0.0.1 | awk '/^tcp/ {++S[$NF]} END {for(a in S) print a, S[a]}'` ";
     sleep 1;
     CON=$CON_NEW;
     CON2=$CON2_NEW;
