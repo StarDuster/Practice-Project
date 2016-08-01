@@ -19,7 +19,7 @@ function calc()
 
 function run_test()
 {
-    TIME=`date | cut -d " " -f 4`
+    TIME=`date | awk '{print $4}'`
 
     echo -e "\nnow is $TIME \n"
     read -p "input the concurrency:" CON
