@@ -5,5 +5,5 @@ Inspired by savelog.sh.
 Usage:
 
 ```
-rotate\_log.sh [-n] [-m|--mode copytruncate|move] [-s|--size minsize] [-z count] filename
-``````
+rotate_log.sh [-n] [-m|--mode copytruncate|move] [-s|--size minsize] [-z count] filename
+```
