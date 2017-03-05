@@ -63,33 +63,41 @@ usage()
     echo "	filename   - log file names"
 }
 
-while getopts n:m:s:z OPT ; do
-    case "OPT" in
-        n)  echo "n" ;;
-        m)  echo "m" ;;
-        s)  echo "s" ;;
-        z)  echo "z" ;;
-        h)  usage; exit 0 ;;
-        *)  usage; exit 1 ;;
+
+while getopts ":nm:s:z:h" optname
+do
+    case "$optname" in
+        "n")    echo $OPTARG; echo "Option $optname is specified" ;;
+        "m")    MINSIZE=$OPTARG; echo "mininal size is $MINSIZE" ;;
+        "s")    echo "Option $optname is specified" ;;
+        "z")    echo "Option $optname is specified" ;;
+        "h")    usage; exit 0 ;;
+        "?")    echo "Unknown option $OPTARG"; exit 1 ;;
+#        ":")    echo "No argument value for option $OPTARG" ;;
+        *)      echo "Unknown error while processing options"; exit 1;;
     esac
+    echo "OPTIND is now $OPTIND"
 done
 
 #switch the $1 to filename list
 shift $(($OPTIND - 1))
-
+echo $1
 
 # option checking
-if [ "$count" -lt 2 ]; then
-	echo "$prog: count must be at least 2" 1>&2
-	exit 2
-fi
+#if [ "$count" -lt 2 ]; then
+#	echo "$prog: count must be at least 2" 1>&2
+#	exit 2
+#fi
 
 
-
-while [ $# -gt 0 ]; do
+all=$#
+while [ $# -gt 0 ];
+do
+    filename=$1
+    shift
+    echo "file $[$all-$#] is $filename"
 
 #    some code here
-
 done
 
 exit $exitcode
