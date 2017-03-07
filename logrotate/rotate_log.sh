@@ -1,20 +1,26 @@
 #!/bin/sh
-#rotate_log.sh - yet another shell complement of logrotate.
+#rotate_log.sh - yet another shell script complement of logrotate.
 
-export PATH=$PATH:/sbin:/bin:/usr/sbin:/usr/bin
+export LANG=en_US
+export LC_ALL=en_US.UTF-8
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin:$PATH
 
-SAVE_DIR=/tmp/
+savedir=/tmp/
 
-prog=`basename $0`
+#set default value
+program=`basename $0`
+nothing=0
+mode=move
+count=5
 
 usage()
 {
-    echo "Usage: $prog [-n nothing] [-m|--mode truncate|move] [-s|--size minsize] [-z count] filename"
-    echo "  -n         - show doing nothing exactlly"
+    echo "Usage: $program [-n nothing] [-m|--mode truncate|move] [-s|--size minsize] [-z count] filename"
+    echo "  -n         - show the plan but doing nothing exactlly"
     echo "  -m mode    - backup files using copytruncate mode or move"
     echo "  -s size    - minimal size to rotate, files smaller than the value will no br rotated"
     echo "             - the size can end with g/m/k, such as '-s 10k' or '-s 10m' "
-    echo "  -z count   - file.n.gz rotate to file.<n+1>.gz while n>=count"
+    echo "  -z count   - file.n.gz rotate to file.<n+1>.gz while n>=count, default is 5"
     echo "               file.n rotate to file.<n+1> while n==count-1"
     echo "  filename   - log file names"
 }
@@ -24,12 +30,6 @@ calc()
     awk "BEGIN{print $*}";
 }
 
-check_arg()
-{
-    if echo $1 | egrep -q '^[0-9]+$'; then :
-    else echo -e "\nThe input $1 is not a valid number!\n" && exit 1;
-    fi
-}
 
 check_size()
 {
@@ -63,47 +63,48 @@ savelog()
 
 check()
 {
-    #check the mode
+    #check option -m
     echo "checking mode..."
     if [ $mode = move ]; then
         echo -e "\nmode is move\n"
     elif [ $mode = truncate ]; then
         echo -e "\nmode is truncate\n"
     else
-        echo -e "\ninvalid mode $mode\n"; exit 1;
+        echo -e "\nInvalid mode $mode\n" 1>&2 ; exit 1;
     fi
 
-    #check the minimal size is a number
+    #check option -s
     echo "checking minimal size..."
 
     case "${minsize: -1}" in
-        g)  ((unit=1024*1024*1024)) ;;
-        m)  ((unit=1024*1024)) ;;
-        k)  ((unit=1024)) ;;
-        *)  echo "invalid size"; exit 1;;
+        [Gg])  ((unit=1024*1024*1024)) ;;
+        [Mm])  ((unit=1024*1024)) ;;
+        [Kk])  ((unit=1024)) ;;
+        *)  echo "Invalid size unit, use g/m/k" 1>&2 ; exit 1;;
     esac
 
+    #another choice, use awk for better portablity
     #size=`awk '{flag=match($0,"[gmk]");print flag;print substr($0,1,flag-1)}' <<< $size`
 
-    if echo ${minsize%%[gmk]} | egrep -q '^[0-9]+$'; then
-        echo -e "\nthe minimal file to rotate is $minsize\n"
+    if echo ${minsize%%?} | egrep -q '^[0-9]+$'; then
+        echo -e "\nThe minimal file to rotate is $minsize\n"
     else
-        echo -e "\nThe size $minsize is not a valid number!\n" ; exit 1;
+        echo -e "\nThe size $minsize is not a valid number!\n" 1>&2 ; exit 1;
     fi
 
-    #check the count to gzip is a number
+    #check option -z
     echo "checking the count to gzip..."
     if echo $count | egrep -q '^[0-9]+$'; then
-        echo -e "\nthe count to gzip is $count\n"
+        echo -e "\nThe count to gzip is $count\n"
     else
-        echo -e "\nThe count $count is not a valid number!\n" ; exit 1;
+        echo -e "\nThe count $count is not a valid number!\n" 1>&2 ; exit 1;
     fi
 }
 
 show()
 {
     #show what to do
-    echo "file $[$filenumber - $#] is $filename"
+    echo "File No.$[$filenumber - $1] is $filename"
 
 }
 
@@ -111,7 +112,7 @@ execute()
 {
     #some code here
     if [ $mode = move ]; then
-        :
+        echo "call function execute for $filename"
     else
         :;
     fi
@@ -120,16 +121,16 @@ execute()
 while getopts ":nm:s:z:h" optname
 do
     case "$optname" in
-        "n")    echo $OPTARG; echo "Option $optname is specified" ;;
+        "n")    nothing=1; echo -e "Option $optname is specified, this program will actually doing nothing\n" ;;
         "m")    mode=$OPTARG ;;
         "s")    minsize=$OPTARG ;;
         "z")    count=$OPTARG ;;
         "h")    usage; exit 0 ;;
         "?")    echo "Unknown option $OPTARG"; usage; exit 1 ;;
-#debug info        ":")    echo "No argument value for option $OPTARG" ;;
+        ":")    echo "No argument value for option $OPTARG" ;;
         *)      echo "Unknown error while processing options"; usage; exit 1 ;;
     esac
-    echo "OPTIND is now $OPTIND"
+#    echo "OPTIND is now $OPTIND"
 done
 
 #switch the $1 to filename list
@@ -139,15 +140,20 @@ shift $(($OPTIND - 1))
 #main options check
 check
 
-echo $#
 #main loop
 filenumber=$#
 while [ $# -gt 0 ];
 do
     filename=$1
     shift
-    echo "file $[$filenumber - $#] is $filename"
-    execute
+#    echo "file $[$filenumber - $#] is $filename"
+
+#be careful about the enviroment of argument when calling functions
+    show $#
+
+    if [ $nothing -ne 1 ]; then
+        execute
+    fi
 #    some code here
 done
 
