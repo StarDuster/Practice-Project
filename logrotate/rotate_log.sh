@@ -126,11 +126,10 @@ checkfile()
 
 checksize()
 {
-    filesize=`wc -c "$filename" | awk '{print $1}'`
-    if [ $filesize -ge $((sizenumber*unit)) ]; then
-        :
-    else
-        echo -e "smaller than minsize, jump over\n"; continue;
+    #check if the files in list smaller than the minsize to rotate
+    filesize=`wc -c<"$filename" | awk '{print $1}'`
+    if [ $filesize -lt $((sizenumber*unit)) ]; then
+        echo -e "$filename is smaller than minsize, jump over\n"; continue;
     fi
 }
 
@@ -146,7 +145,7 @@ show()
 
 execute()
 {
-    #some code here
+    #execute here
     if [ $mode = move ]; then
         echo "call function execute for $filename"
     else
@@ -166,23 +165,21 @@ do
         ":")    echo "No argument value for option $OPTARG" ;;
         *)      echo "Unknown error while processing options"; usage; exit 1 ;;
     esac
-#    echo "OPTIND is now $OPTIND"
 done
 
 #switch the $1 to filename list
 shift $(($OPTIND - 1))
-#echo $1
 
 #main options check
 checkoption
 
-#main loop
+#main loop, until the file list was enpty
 filenumber=$#
 while [ $# -gt 0 ];
 do
     filename=$1
     shift
-#    echo "file $[$filenumber - $#] is $filename"
+ 
     checkfile $1
     checksize $1
 
