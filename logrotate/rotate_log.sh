@@ -5,7 +5,7 @@ export LANG=en_US
 export LC_ALL=en_US.UTF-8
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin:$PATH
 
-savedir=/tmp/
+logdir=/logrotate
 
 #set default value
 program=`basename $0`
@@ -61,7 +61,7 @@ savelog()
     echo "rotate $filename to $LOG" >> $LOG
 }
 
-check()
+checkoption()
 {
     #check option -m
     echo "checking mode..."
@@ -99,12 +99,40 @@ check()
     else
         echo -e "\nThe count $count is not a valid number!\n" 1>&2 ; exit 1;
     fi
+
+    #check savedir
+    savedir=`dirname "$filename"`$logdir
+    if [ -z "$savedir" ]; then
+        savedir=.
+    fi
+    if [ ! -d "$savedir" ]; then
+        mkdir -p "$savedir"
+        if [ "$?" -ne 0 ]; then
+            echo "could not mkdir $savedir" 1>&2; continue;
+        fi
+        chmod 0755 "$savedir"
+    fi
+    if [ ! -w "$savedir" ]; then
+        echo "directory $savedir is not writable, save to /tmp"; mkdir -p /tmp$logdir/; savedir="/tmp$logdir";
+    fi
+}
+
+checkfile()
+{
+    #check if the files in list exist
+    if [ -e "$filename" ] && [ -f "$filename" ]; then
+        echo "file $filename check pass"
+    else
+        echo -e "file $filename not exist or not regular file, jump over\n"; continue;
+    fi
 }
 
 show()
 {
     #show what to do
-    echo "File No.$[$filenumber - $1] is $filename"
+    newname=$filename
+    echo -e "File No.$[$filenumber - $1] is $filename"
+    echo -e "Saving to $savedir/$newname\n"
 
 }
 
@@ -121,7 +149,7 @@ execute()
 while getopts ":nm:s:z:h" optname
 do
     case "$optname" in
-        "n")    nothing=1; echo -e "Option $optname is specified, this program will actually doing nothing\n" ;;
+        "n")    nothing=1; echo -e "Option $optname is specified, the $program will actually doing nothing\n" ;;
         "m")    mode=$OPTARG ;;
         "s")    minsize=$OPTARG ;;
         "z")    count=$OPTARG ;;
@@ -138,7 +166,7 @@ shift $(($OPTIND - 1))
 #echo $1
 
 #main options check
-check
+checkoption
 
 #main loop
 filenumber=$#
@@ -147,14 +175,14 @@ do
     filename=$1
     shift
 #    echo "file $[$filenumber - $#] is $filename"
-
-#be careful about the enviroment of argument when calling functions
+    checkfile $1
+    #be careful about the enviroment of argument when calling functions
     show $#
 
     if [ $nothing -ne 1 ]; then
         execute
     fi
-#    some code here
+
 done
 
 # exit $exitcode
