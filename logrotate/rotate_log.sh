@@ -18,7 +18,7 @@ usage()
     echo "Usage: $program [-n nothing] [-m|--mode truncate|move] [-s|--size minsize] [-z count] filename"
     echo "  -n         - show the plan but doing nothing exactlly"
     echo "  -m mode    - backup files using copytruncate mode or move"
-    echo "  -s size    - minimal size to rotate, files smaller than the value will no br rotated"
+    echo "  -s size    - minimal size to rotate, files smaller than the value will not be rotated"
     echo "             - the size can end with g/m/k, such as '-s 10k' or '-s 10m' "
     echo "  -z count   - file.n.gz rotate to file.<n+1>.gz while n>=count, default is 5"
     echo "               file.n rotate to file.<n+1> while n==count-1"
