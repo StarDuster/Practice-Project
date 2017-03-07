@@ -56,11 +56,6 @@ filesize()
     fi
 }
 
-savelog()
-{
-    echo "rotate $filename to $LOG" >> $LOG
-}
-
 checkoption()
 {
     #check option -m
@@ -87,7 +82,7 @@ checkoption()
     #size=`awk '{flag=match($0,"[gmk]");print flag;print substr($0,1,flag-1)}' <<< $size`
 
     if echo ${minsize%%?} | egrep -q '^[0-9]+$'; then
-        echo -e "\nThe minimal file to rotate is $minsize\n"
+        echo -e "\nThe minimal file to rotate is $minsize\n"; sizenumber=${minsize%%?}
     else
         echo -e "\nThe size $minsize is not a valid number!\n" 1>&2 ; exit 1;
     fi
@@ -108,13 +103,15 @@ checkoption()
     if [ ! -d "$savedir" ]; then
         mkdir -p "$savedir"
         if [ "$?" -ne 0 ]; then
-            echo "could not mkdir $savedir" 1>&2; continue;
+            echo "could not mkdir $savedir" 1>&2;
         fi
         chmod 0755 "$savedir"
     fi
     if [ ! -w "$savedir" ]; then
         echo "directory $savedir is not writable, save to /tmp"; mkdir -p /tmp$logdir/; savedir="/tmp$logdir";
     fi
+
+    echo -e "all options checked\n"
 }
 
 checkfile()
@@ -127,12 +124,23 @@ checkfile()
     fi
 }
 
+checksize()
+{
+    filesize=`wc -c "$filename" | awk '{print $1}'`
+    if [ $filesize -ge $((sizenumber*unit)) ]; then
+        :
+    else
+        echo -e "smaller than minsize, jump over\n"; continue;
+    fi
+}
+
 show()
 {
     #show what to do
-    newname=$filename
+    newname=`basename "$filename"`
+    newname="$savedir/$newname"
     echo -e "File No.$[$filenumber - $1] is $filename"
-    echo -e "Saving to $savedir/$newname\n"
+    echo -e "Saving to $newname\n"
 
 }
 
@@ -176,6 +184,8 @@ do
     shift
 #    echo "file $[$filenumber - $#] is $filename"
     checkfile $1
+    checksize $1
+
     #be careful about the enviroment of argument when calling functions
     show $#
 
