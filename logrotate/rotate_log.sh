@@ -11,17 +11,19 @@ logdir=/logrotate
 program=`basename $0`
 nothing=0
 mode=move
+minsize=10k
 count=5
 
 usage()
 {
     echo "Usage: $program [-n nothing] [-m|--mode truncate|move] [-s|--size minsize] [-z count] filename"
     echo "  -n         - show the plan but doing nothing exactlly"
-    echo "  -m mode    - backup files using copytruncate mode or move"
+    echo "  -m mode    - backup files using copy-truncate mode or move-newfile mode"
+    echo "             - default is move, don't use truncate mode on non-linux system"
     echo "  -s size    - minimal size to rotate, files smaller than the value will not be rotated"
-    echo "             - the size can end with g/m/k, such as '-s 10k' or '-s 10m' "
-    echo "  -z count   - file.n.gz rotate to file.<n+1>.gz while n>=count, default is 5"
-    echo "               file.n rotate to file.<n+1> while n==count-1"
+    echo "             - the size can end with g/m/k, such as '-s 10K' or '-s 10m', default is 10K "
+    echo "  -z count   - file.n.gz rotate to file.<n+1>.gz while n>=count"
+    echo "               file.n rotate to file.<n+1> while n==count-1, default is 5"
     echo "  filename   - log file names"
 }
 
@@ -88,9 +90,9 @@ checkoption()
     fi
 
     #check option -z
-    echo "checking the count to gzip..."
+    echo "checking the count to rotate..."
     if echo $count | egrep -q '^[0-9]+$'; then
-        echo -e "\nThe count to gzip is $count\n"
+        echo -e "\nThe count to rotate is $count\n"
     else
         echo -e "\nThe count $count is not a valid number!\n" 1>&2 ; exit 1;
     fi
@@ -110,6 +112,7 @@ checkoption()
     if [ ! -w "$savedir" ]; then
         echo "directory $savedir is not writable, save to /tmp"; mkdir -p /tmp$logdir/; savedir="/tmp$logdir";
     fi
+    echo -e "save to $savedir\n"
 
     echo -e "all options checked\n"
 }
@@ -136,9 +139,9 @@ checksize()
 show()
 {
     #show what to do
-    newname=`basename "$filename"`
+    newname=`basename "$1"`
     newname="$savedir/$newname"
-    echo -e "File No.$[$filenumber - $1] is $filename"
+    echo -e "File No.$[$filetotal - $filenumber] is $1"
     echo -e "Saving to $newname\n"
 
 }
@@ -147,7 +150,7 @@ execute()
 {
     #execute here
     if [ $mode = move ]; then
-        echo "call function execute for $filename"
+        echo -e "call function execute for $1 to execute\n"
     else
         :;
     fi
@@ -173,22 +176,31 @@ shift $(($OPTIND - 1))
 #main options check
 checkoption
 
+#get the file list and the number of files
+filelist=(`ls $1*|sort -t '.' -k3n`)
+filetotal=$(ls $1*|wc -l|awk '{print $1}')
+gztotal=$(ls $1.*.gz|wc -l|awk '{print $1}')
+
+echo -e "total $filetotal files, $gztotal gzipped\n"
+
+filenumber=$filetotal
+
 #main loop, until the file list was enpty
-filenumber=$#
-while [ $# -gt 0 ];
+while [ $filenumber -gt 0 ];
 do
-    filename=$1
-    shift
- 
-    checkfile $1
-    checksize $1
+    filename=${filelist[$filenumber-1]}
+    ((filenumber=filenumber-1))
+
+    checkfile $filename
+    checksize $filename
 
     #be careful about the enviroment of argument when calling functions
-    show $#
+    show $filename
 
     if [ $nothing -ne 1 ]; then
-        execute
+        execute $filename
     fi
+
 
 done
 
