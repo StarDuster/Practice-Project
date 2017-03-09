@@ -16,15 +16,17 @@ count=5
 
 usage()
 {
-    echo "Usage: $program [-n nothing] [-m|--mode truncate|move] [-s|--size minsize] [-z count] filename"
+    echo "Usage: $program [-n nothing] [-m truncate|move] [-s minsize] [-z count] filename"
     echo "  -n         - show the plan but doing nothing exactlly"
     echo "  -m mode    - backup files using copy-truncate mode or move-newfile mode"
-    echo "             - default is move, don't use truncate mode on non-linux system"
+    echo "             - default is move, DO NOT use truncate mode on non-linux system"
     echo "  -s size    - minimal size to rotate, files smaller than the value will not be rotated"
-    echo "             - the size can end with g/m/k, such as '-s 10K' or '-s 10m', default is 10K "
+    echo "             - the size can end with g/m/k, e.g. '-s 10K' or '-s 10m', default is 10K "
     echo "  -z count   - file.n.gz rotate to file.<n+1>.gz while n>=count"
     echo "               file.n rotate to file.<n+1> while n==count-1, default is 5"
-    echo "  filename   - log file names"
+    echo "  filename   - log file names, e.g. '/path/to/file.log' or 'file.log' for current dir"
+    echo "             - please DO enter the full filename partern with no wildcard character "
+    echo "             - e.g. 'rsync.d.log' can NOT be replaced by 'rsync.d.log.' or 'rsync*' "
 }
 
 calc()
@@ -97,24 +99,29 @@ checkoption()
         echo -e "\nThe count $count is not a valid number!\n" 1>&2 ; exit 1;
     fi
 
+    echo -e "all options checked\n"
+}
+
+checkdir()
+{
     #check savedir
-    savedir=`dirname "$filename"`$logdir
+    savedir=`dirname "$filelist"`$logdir
     if [ -z "$savedir" ]; then
-        savedir=.
+        savedir=/tmp$logdir
     fi
     if [ ! -d "$savedir" ]; then
         mkdir -p "$savedir"
         if [ "$?" -ne 0 ]; then
             echo "could not mkdir $savedir" 1>&2;
+        else
+            chmod 0755 "$savedir"
         fi
-        chmod 0755 "$savedir"
     fi
     if [ ! -w "$savedir" ]; then
         echo "directory $savedir is not writable, save to /tmp"; mkdir -p /tmp$logdir/; savedir="/tmp$logdir";
     fi
-    echo -e "save to $savedir\n"
+    echo -e "savedir is $savedir\n"
 
-    echo -e "all options checked\n"
 }
 
 checkfile()
@@ -123,7 +130,7 @@ checkfile()
     if [ -e "$filename" ] && [ -f "$filename" ]; then
         echo "file $filename check pass"
     else
-        echo -e "file $filename not exist or not regular file, jump over\n"; continue;
+        echo -e "file $filename not exist or not regular file, jump over\n"; ((filenumber=filenumber-1)); continue;
     fi
 }
 
@@ -132,7 +139,7 @@ checksize()
     #check if the files in list smaller than the minsize to rotate
     filesize=`wc -c<"$filename" | awk '{print $1}'`
     if [ $filesize -lt $((sizenumber*unit)) ]; then
-        echo -e "$filename is smaller than minsize, jump over\n"; continue;
+        echo -e "$filename is smaller than minsize, jump over\n"; ((filenumber=filenumber-1)); continue;
     fi
 }
 
@@ -141,8 +148,8 @@ show()
     #show what to do
     newname=`basename "$1"`
     newname="$savedir/$newname"
-    echo -e "File No.$[$filetotal - $filenumber] is $1"
-    echo -e "Saving to $newname\n"
+    echo -e "File No.$[$filetotal - $filenumber+1] is $1"
+    echo -e "Saving $1 to $prefix.$((filenumber+1))\n"
 
 }
 
@@ -156,6 +163,8 @@ execute()
     fi
 }
 
+
+#main entrance of the script
 while getopts ":nm:s:z:h" optname
 do
     case "$optname" in
@@ -173,15 +182,22 @@ done
 #switch the $1 to filename list
 shift $(($OPTIND - 1))
 
-#main options check
-checkoption
 
+#count the dot in filename to ensure sort success
+dotnumber=$(echo $1| grep -o '\.'|wc -l|awk '{print $1}')
 #get the file list and the number of files
-filelist=(`ls $1*|sort -t '.' -k3n`)
+filelist=(`ls $1*|sort -t '.' -k$((dotnumber+2)) -n`)
 filetotal=$(ls $1*|wc -l|awk '{print $1}')
 gztotal=$(ls $1.*.gz|wc -l|awk '{print $1}')
 
 echo -e "total $filetotal files, $gztotal gzipped\n"
+
+#get the prefix of the file
+prefix=`basename $1`
+
+#main options check
+checkoption
+checkdir
 
 filenumber=$filetotal
 
@@ -189,8 +205,8 @@ filenumber=$filetotal
 while [ $filenumber -gt 0 ];
 do
     filename=${filelist[$filenumber-1]}
-    ((filenumber=filenumber-1))
 
+    #check file, shift filenumber in check function if failed
     checkfile $filename
     checksize $filename
 
@@ -201,6 +217,8 @@ do
         execute $filename
     fi
 
+    ((filenumber=filenumber-1))
+    #count down the filenumber when execute success
 
 done
 
