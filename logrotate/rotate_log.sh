@@ -149,8 +149,11 @@ show()
     newname=`basename "$1"`
     newname="$savedir/$newname"
     echo -e "File No.$[$filetotal - $filenumber+1] is $1"
-    echo -e "Saving $1 to $prefix.$((filenumber+1))\n"
-
+    if [ $filenumber -gt $count ]; then
+        echo -e "Saving $1 to $prefix.$((filenumber)).gz\n"
+    else
+        echo -e "Saving $1 to $prefix.$((filenumber))\n"
+    fi
 }
 
 execute()
@@ -182,9 +185,10 @@ done
 #switch the $1 to filename list
 shift $(($OPTIND - 1))
 
-
 #count the dot in filename to ensure sort success
+#be careful about the enviroment of argument when calling subshells
 dotnumber=$(echo $1| grep -o '\.'|wc -l|awk '{print $1}')
+
 #get the file list and the number of files
 filelist=(`ls $1*|sort -t '.' -k$((dotnumber+2)) -n`)
 filetotal=$(ls $1*|wc -l|awk '{print $1}')
@@ -210,7 +214,9 @@ do
     checkfile $filename
     checksize $filename
 
-    #be careful about the enviroment of argument when calling functions
+    #infix is the number inside the filename, the suffix is .gz or none
+    infix=$(echo $filename|cut -d '.' -f $((dotnumber+2)))
+
     show $filename
 
     if [ $nothing -ne 1 ]; then
