@@ -30,26 +30,27 @@ usage()
 check_option()
 {
     #check option -m
-    echo "checking mode..."
+    #echo "checking mode..."
     if [ $mode = move ]; then
-        echo -e "\nmode is move\n"
+        echo -e "\nrotate mode is move"
     elif [ $mode = truncate ]; then
-        if uname -a | grep -iq "linux"; then
-            echo -e "\nmode is truncate\n"
+        #truncate is not available on BSD
+        if truncate --version >/dev/null 2>&1; then
+            echo -e "\nrotate mode is truncate"
         else
-            echo -e "\ncommand truncate only available on linux, exit" 1>&2 ; exit 1
+            echo -e "\ncommand truncate not found, exit" 1>&2 ; exit 1
         fi
     else
         echo -e "\nInvalid mode $mode\n" 1>&2 ; exit 1
     fi
 
     #check option -s
-    echo "checking minimal size..."
+    #echo "checking minimal size..."
 
     if echo ${minsize%%?} | egrep -q '^[0-9]+$'; then
-        echo -e "\nThe minimal file to rotate is $minsize\n"; sizenumber=${minsize%%?}
+        echo -e "\nThe minimal file to rotate is $minsize"; sizenumber=${minsize%%?}
     else
-        echo -e "\nThe size $minsize is not a valid number!\n" 1>&2 ; exit 1
+        echo -e "\nThe size $minsize is not a valid number!" 1>&2 ; exit 1
     fi
 
     #parameter expansion "${minsize: -1}" is simpler, use parttern match for compatible
@@ -61,14 +62,14 @@ check_option()
     esac
 
     #check option -z
-    echo "checking the count to gzip..."
+    #echo "checking the count to gzip..."
     if echo $count | egrep -q '^[0-9]+$' && [ $count -gt 0 ] ; then
-        echo -e "\nThe count to gzip is $count\n"
+        echo -e "\nThe count to keep uncopressed is $count\n"
     else
         echo -e "\nThe count $count is not a valid number!\n" 1>&2 ; exit 1
     fi
 
-    echo -e "all options checked\n"
+    #echo -e "all options checked\n"
 }
 
 
@@ -92,8 +93,8 @@ get_total_file()
 {
     #get the file list and the number of files,
     #use awk to avoid space in front of the wc result
-    filetotal=$(ls $filename* 2> /dev/null|wc -l|awk '{print $1}')
-    gztotal=$(ls $filename.*.gz 2> /dev/null|wc -l|awk '{print $1}')
+    filetotal=$(ls -- $filename* 2> /dev/null|wc -l|awk '{print $1}')
+    gztotal=$(ls -- $filename.*.gz 2> /dev/null|wc -l|awk '{print $1}')
     ungztotal=$((filetotal-$gztotal))
 
     echo -e "\ntotal $filetotal files, $gztotal gzipped, $ungztotal not gzipped\n"
@@ -106,9 +107,9 @@ get_total_file()
 execute_rotate()
 {
     if [ $mode = move ]; then
-        mv $prefix$postfix $prefix$newpostfix; touch $prefix$postfix
+        mv -- $prefix$postfix $prefix$newpostfix; touch -- $prefix$postfix
     else
-        cp $prefix$postfix $prefix$newpostfix; truncate -s 0 $prefix$postfix
+        cp -- $prefix$postfix $prefix$newpostfix; truncate -s 0 -- $prefix$postfix
     fi
 }
 
@@ -138,7 +139,7 @@ process_rotate()
 
 execute_gzip()
 {
-    gzip -f $prefix$postfix
+    gzip -f -- $prefix$postfix
 }
 
 process_gzip()
