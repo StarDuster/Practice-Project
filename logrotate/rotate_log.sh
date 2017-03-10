@@ -46,18 +46,19 @@ check_option()
     #check option -s
     echo "checking minimal size..."
 
-    case "${minsize: -1}" in
-        [Gg])  unit=$((1024*1024*1024)) ;;
-        [Mm])  unit=$((1024*1024)) ;;
-        [Kk])  unit=$((1024)) ;;
-        *)  echo "Invalid size unit, use g/m/k" 1>&2 ; exit 1;;
-    esac
-
     if echo ${minsize%%?} | egrep -q '^[0-9]+$'; then
         echo -e "\nThe minimal file to rotate is $minsize\n"; sizenumber=${minsize%%?}
     else
         echo -e "\nThe size $minsize is not a valid number!\n" 1>&2 ; exit 1
     fi
+
+    #parameter expansion "${minsize: -1}" is simpler, use parttern match for compatible
+    case "${minsize##*[0-9]}" in
+        [Gg])  unit=$((1024*1024*1024)) ;;
+        [Mm])  unit=$((1024*1024)) ;;
+        [Kk])  unit=$((1024)) ;;
+        *)  echo "Invalid size unit, use g/m/k" 1>&2 ; exit 1;;
+    esac
 
     #check option -z
     echo "checking the count to gzip..."
@@ -116,7 +117,7 @@ process_rotate()
     #first treat origin file, then gz file
     if [ -z $filenumber ]; then
         postfix="$filenumber";
-        newpostfix=".$((filenumber+1))"
+        newpostfix=".1"
     elif [ $filenumber -gt $((ungztotal-1)) ]; then
         postfix=".$filenumber.gz";
         newpostfix=".$((filenumber+1)).gz"
@@ -133,7 +134,6 @@ process_rotate()
     else
         execute_rotate
     fi
-    filenumber=$((filenumber-1))
 }
 
 execute_gzip()
@@ -151,7 +151,6 @@ process_gzip()
     else
         execute_gzip
     fi
-    filenumber=$((filenumber-1))
 }
 #main entrance of the script
 while getopts ":nm:s:z:h" optname
@@ -187,6 +186,7 @@ filenumber=$((filetotal-1))
 while [ $filenumber -gt 0 ];
 do
     process_rotate $filenumber
+    filenumber=$((filenumber-1))
     #count down the filenumber when execute success
 done
 
@@ -203,6 +203,7 @@ filenumber=$((ungztotal-1))
 until [ $filenumber -lt $count ];
 do
     process_gzip $filenumber
+    filenumber=$((filenumber-1))
 done
 
 get_total_file
