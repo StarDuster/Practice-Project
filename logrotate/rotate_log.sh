@@ -83,7 +83,7 @@ check_file()
     fi
 
     #check if the files in list smaller than the minsize to rotate
-    filesize=`wc -c<"$filename" | awk '{print $1}'`
+    filesize=`wc -c --<"$filename" | awk '{print $1}'`
     if [ $filesize -lt $((sizenumber*unit)) ]; then
         echo -e "$filename is smaller than minsize, jump over\n"; exit 1
     fi
