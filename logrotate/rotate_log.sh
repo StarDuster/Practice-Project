@@ -6,7 +6,7 @@ export LC_ALL=en_US.UTF-8
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin:$PATH
 
 #set default value
-program=`basename $0`
+program=$(basename $0)
 nothing=0
 mode=move
 minsize=10k
@@ -83,7 +83,7 @@ check_file()
     fi
 
     #check if the files in list smaller than the minsize to rotate
-    filesize=`wc -c --<"$filename" | awk '{print $1}'`
+    filesize=$(wc -c --<"$filename" | awk '{print $1}')
     if [ $filesize -lt $((sizenumber*unit)) ]; then
         echo -e "$filename is smaller than minsize, jump over\n" 1>&2; exit 1
     fi
