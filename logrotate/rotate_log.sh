@@ -79,13 +79,13 @@ check_file()
     if [ -e "$filename" ] && [ -f "$filename" ]; then
         echo -e "file $filename check pass"
     else
-        echo -e "file $filename not exist or not regular file, jump over"; exit 1
+        echo -e "file $filename not exist or not regular file, jump over" 1>&2; exit 1
     fi
 
     #check if the files in list smaller than the minsize to rotate
     filesize=`wc -c --<"$filename" | awk '{print $1}'`
     if [ $filesize -lt $((sizenumber*unit)) ]; then
-        echo -e "$filename is smaller than minsize, jump over\n"; exit 1
+        echo -e "$filename is smaller than minsize, jump over\n" 1>&2; exit 1
     fi
 }
 
@@ -166,7 +166,7 @@ do
 	                eval 'minsize=${'"$((OPTIND))"'}'; OPTIND=$(($OPTIND+1)) ;;
 	            count)
 	                eval 'count=${'"$((OPTIND))"'}'; OPTIND=$(($OPTIND+1)) ;;
-	            *)	echo "Unknown error while processing options"; show_usage; exit 1 ;;
+	            *)	echo "Unknown error while processing options" 1>&2; show_usage; exit 1 ;;
 	        esac;;
         "n")    nothing=1; echo -e "\nOption $optname is specified, the $program will actually doing nothing" ;;
         "m")    mode=$OPTARG ;;
@@ -174,8 +174,8 @@ do
         "z")    count=$OPTARG ;;
         "h")    show_usage; exit 0 ;;
         "?")    echo "Unknown option $OPTARG"; show_usage; exit 1 ;;
-        ":")    echo "No argument value for option $OPTARG" ; show_usage; exit 1 ;;
-        *)      echo "Unknown error while processing options"; show_usage; exit 1 ;;
+        ":")    echo "No argument value for option $OPTARG" 1>&2; show_usage; exit 1 ;;
+        *)      echo "Unknown error while processing options" 1>&2; show_usage; exit 1 ;;
     esac
 done
 
