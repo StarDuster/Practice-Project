@@ -21,21 +21,23 @@
 #### 用法举例：
 
 ```
-./rotate_log.sh -m truncate -s 10k -z 5 /path/to/test.log
+./rotate_log.sh -m truncate -s 10k -z 5 /path/to/app1.log /path/to/app2.log 
+./rotate_log.sh --mode truncate --size 10k --count 5 app1.log
 ```
+
 #### 参数说明：
 
 各选项在不指定值的时候将使用默认值，可以不输入所有的选项
 
 `-n` 使用此参数的时候不会执行实际操作，但是会正常打印输出并展示将进行的操作
 
-`-m` 操作模式，指定为`move`时将`mv`移动源文件并`touch`创建新文件，指定为`truncate`时将`cp`复制到新文件并使用`truncate`清空源文件，执行时将判断`truncate`命令是否存在，不存在将直接退出不执行任何操作，默认值为 move
+`-m | --mode` 操作模式，指定为`move`时将`mv`移动源文件并`touch`创建新文件，指定为`truncate`时将`cp`复制到新文件并使用`truncate`清空源文件，执行时将判断`truncate`命令是否存在，不存在将直接退出不执行任何操作，默认值为 move
 
-`-s` 指定执行操作所需最小文件大小，当`filename`文件小于指定大小将直接退出不进行任何操作，参数以`G/g/M/m/K/k`结尾，如`-s 100k`，默认值为10k
+`-s | --size` 指定执行操作所需最小文件大小，当`filename`文件小于指定大小将直接退出不进行任何操作，参数以`G/g/M/m/K/k`结尾，如`-s 1m`，默认值为10k
 
-`-z` 指定需要执行压缩的最小文件编号，实际上也是目录下保留未压缩文件的数量，参数为纯数字，如`-z 10`，默认值为5
+`-z | --count` 指定需要执行压缩的最小文件编号，实际上也是目录下保留未压缩文件的数量，参数为纯数字，如`-z 10`，默认值为5
 
-`filename` 附带完整路径的文件名，不指定路径则为脚本所在目录，需要注意文件名必须完全符合，一次执行只应处理一组文件，即`app1.log`和`app2.log`不能同时处理，输入`app*.log`将出现问题
+`filename` 附带完整路径的文件名，不指定路径则为脚本所在目录，需要注意文件名必须完全正确，即`app1.log`和`app2.log`不能输入`app*.log`
 
 #### 输出样例：
 
@@ -76,7 +78,8 @@ total 17 files, 12 gzipped, 5 not gzipped
 * `filename`参数携带多余的符号均会引起解析问题
 * MacOS、BSD 等系统不存在`truncate`命令，执行时将无法通过检查直接退出，通过 homebrew 安装 coreutils 包，并执行`alias truncate="/usr/local/bin/gtruncate"`可以避免问题
 * 没有对所有外部命令都进行存在检验，如`awk`，这些命令不存在执行将引起循环控制不正常
-* `getopts`若要进行长选项的解析实现比较 hack，而部分 BSD 平台默认没有`getopt`工具
+* `getopts`不能处理长选项，而部分 BSD 平台默认没有`getopt`工具，因此使用了较为 hack 的办法解析长选项
+* `filename`参数如果带有错误的通配符，文件操作可能引起不可知的结果，此错误由于通配展开在脚本执行前，脚本内部无法得知传入的原始参数，故没有处理
 
 ## 参考
 
