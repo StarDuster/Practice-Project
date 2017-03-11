@@ -154,75 +154,81 @@ process_gzip()
     fi
 }
 
+main()
+{
+    #parse long options, inspired by stackoverflow: http://goo.gl/LftKx
+    #and I hack it to make it work under non-bash shells
+    while getopts ":nm:s:z:h-:" optname
+    do
+        case "${optname}" in
+    	    -)
+    	        case "${OPTARG}" in
+    	            mode)
+    	                eval 'mode=${'"$((OPTIND))"'}'; OPTIND=$(($OPTIND+1)) ;;
+    	            size)
+    	                eval 'minsize=${'"$((OPTIND))"'}'; OPTIND=$(($OPTIND+1)) ;;
+    	            count)
+    	                eval 'count=${'"$((OPTIND))"'}'; OPTIND=$(($OPTIND+1)) ;;
+    	            *)	echo "Unknown error while processing options" 1>&2; show_usage; exit 1 ;;
+    	        esac;;
+            "n")    nothing=1; echo -e "\nOption $optname is specified, the $program will actually doing nothing" ;;
+            "m")    mode=$OPTARG ;;
+            "s")    minsize=$OPTARG ;;
+            "z")    count=$OPTARG ;;
+            "h")    show_usage; exit 0 ;;
+            "?")    echo "Unknown option $OPTARG"; show_usage; exit 1 ;;
+            ":")    echo "No argument value for option $OPTARG" 1>&2; show_usage; exit 1 ;;
+            *)      echo "Unknown error while processing options" 1>&2; show_usage; exit 1 ;;
+        esac
+    done
+
+    #switch the $1 to filename list
+    shift $(($OPTIND - 1))
+
+    #main options check
+    check_option
+
+    while [ $# -gt 0 ]; do
+
+    	#check file existence and size, will not go into main loop if failed
+    	filename=$1
+    	prefix=$1
+    	check_file $filename
+
+    	#main loop, to rotate the files
+    	get_total_file
+    	filenumber=$((filetotal-1))
+
+    	#main loop, to rotate the files
+    	while [ $filenumber -gt 0 ];
+    	do
+    	    process_rotate $filenumber
+    	    filenumber=$((filenumber-1))
+    	    #count down the filenumber when execute success
+    	done
+
+    	#process the origin file without number
+    	filenumber=""
+    	process_rotate $filenumber
+
+    	#a rotate loop make uncopressed file number+1
+    	ungztotal=$((ungztotal+1))
+
+    	#second loop to gzip the files
+    	filenumber=$((ungztotal-1))
+
+    	until [ $filenumber -lt $count ];
+    	do
+    	    process_gzip $filenumber
+    	    filenumber=$((filenumber-1))
+    	done
+
+    	get_total_file
+    	#process next filename pattern
+    	shift
+    done
+    exit 0
+}
+
 #main entrance of the script
-while getopts ":nm:s:z:h-:" optname
-do
-    case "${optname}" in
-	    -) #parse long option by a hacking way, copy from stackoverflow
-	        case "${OPTARG}" in
-	            mode)
-	                eval 'mode=${'"$((OPTIND))"'}'; OPTIND=$(($OPTIND+1)) ;;
-	            size)
-	                eval 'minsize=${'"$((OPTIND))"'}'; OPTIND=$(($OPTIND+1)) ;;
-	            count)
-	                eval 'count=${'"$((OPTIND))"'}'; OPTIND=$(($OPTIND+1)) ;;
-	            *)	echo "Unknown error while processing options" 1>&2; show_usage; exit 1 ;;
-	        esac;;
-        "n")    nothing=1; echo -e "\nOption $optname is specified, the $program will actually doing nothing" ;;
-        "m")    mode=$OPTARG ;;
-        "s")    minsize=$OPTARG ;;
-        "z")    count=$OPTARG ;;
-        "h")    show_usage; exit 0 ;;
-        "?")    echo "Unknown option $OPTARG"; show_usage; exit 1 ;;
-        ":")    echo "No argument value for option $OPTARG" 1>&2; show_usage; exit 1 ;;
-        *)      echo "Unknown error while processing options" 1>&2; show_usage; exit 1 ;;
-    esac
-done
-
-#switch the $1 to filename list
-shift $(($OPTIND - 1))
-
-#main options check
-check_option
-
-while [ $# -gt 0 ]; do
-
-	#check file existence and size, will not go into main loop if failed
-	filename=$1
-	prefix=$1
-	check_file $filename
-
-	#main loop, to rotate the files
-	get_total_file
-	filenumber=$((filetotal-1))
-
-	#main loop, to rotate the files
-	while [ $filenumber -gt 0 ];
-	do
-	    process_rotate $filenumber
-	    filenumber=$((filenumber-1))
-	    #count down the filenumber when execute success
-	done
-
-	#process the origin file without number
-	filenumber=""
-	process_rotate $filenumber
-
-	#a rotate loop make uncopressed file number+1
-	ungztotal=$((ungztotal+1))
-
-	#second loop to gzip the files
-	filenumber=$((ungztotal-1))
-
-	until [ $filenumber -lt $count ];
-	do
-	    process_gzip $filenumber
-	    filenumber=$((filenumber-1))
-	done
-
-	get_total_file
-	#process next filename pattern
-	shift
-done
-
-exit 0
+main "$@"
