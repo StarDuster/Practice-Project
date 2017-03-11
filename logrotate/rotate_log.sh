@@ -154,9 +154,19 @@ process_gzip()
     fi
 }
 #main entrance of the script
-while getopts ":nm:s:z:h" optname
+while getopts ":nm:s:z:h-:" optname
 do
-    case "$optname" in
+    case "${optname}" in
+	    -) #parse long option by a hacking way, copy from stackoverflow
+	        case "${OPTARG}" in
+	            mode)
+	                mode="${!OPTIND}"; OPTIND=$(($OPTIND+1)) ;;
+	            size)
+	                minsize="${!OPTIND}"; OPTIND=$(($OPTIND+1)) ;;
+	            count)
+	                count="${!OPTIND}"; OPTIND=$(($OPTIND+1)) ;;
+	            *)	echo "Unknown error while processing options"; usage; exit 1 ;;
+	        esac;;
         "n")    nothing=1; echo -e "Option $optname is specified, the $program will actually doing nothing\n" ;;
         "m")    mode=$OPTARG ;;
         "s")    minsize=$OPTARG ;;
