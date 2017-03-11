@@ -12,7 +12,7 @@ mode=move
 minsize=10k
 count=5
 
-usage()
+show_usage()
 {
     echo "Usage: $program [-n nothing] [-m truncate|move] [-s minsize] [-z count] filename"
     echo "  -n           - show the plan but doing nothing exactlly"
@@ -166,16 +166,16 @@ do
 	                eval 'minsize=${'"$((OPTIND))"'}'; OPTIND=$(($OPTIND+1)) ;;
 	            count)
 	                eval 'count=${'"$((OPTIND))"'}'; OPTIND=$(($OPTIND+1)) ;;
-	            *)	echo "Unknown error while processing options"; usage; exit 1 ;;
+	            *)	echo "Unknown error while processing options"; show_usage; exit 1 ;;
 	        esac;;
         "n")    nothing=1; echo -e "\nOption $optname is specified, the $program will actually doing nothing" ;;
         "m")    mode=$OPTARG ;;
         "s")    minsize=$OPTARG ;;
         "z")    count=$OPTARG ;;
-        "h")    usage; exit 0 ;;
-        "?")    echo "Unknown option $OPTARG"; usage; exit 1 ;;
-        ":")    echo "No argument value for option $OPTARG" ;;
-        *)      echo "Unknown error while processing options"; usage; exit 1 ;;
+        "h")    show_usage; exit 0 ;;
+        "?")    echo "Unknown option $OPTARG"; show_usage; exit 1 ;;
+        ":")    echo "No argument value for option $OPTARG" ; show_usage; exit 1 ;;
+        *)      echo "Unknown error while processing options"; show_usage; exit 1 ;;
     esac
 done
 
