@@ -75,7 +75,6 @@ total 17 files, 12 gzipped, 5 not gzipped
 ## 已知问题
 
 * 由于`echo`操作的参数定义存在区别，dash 的输出会每一行多一个"-e"，但是文件操作正常
-* `filename`参数携带多余的符号均会引起解析问题
 * MacOS、BSD 等系统不存在`truncate`命令，执行时将无法通过检查直接退出，通过 homebrew 安装 coreutils 包，并执行`alias truncate="/usr/local/bin/gtruncate"`可以避免问题
 * 没有对所有外部命令都进行存在检验，如`awk`，这些命令不存在执行将引起循环控制不正常
 * `getopts`不能处理长选项，而部分 BSD 平台默认没有`getopt`工具，因此使用了较为 hack 的办法解析长选项
