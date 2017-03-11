@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #rotate_log.sh - yet another shell script complement of logrotate.
 
 export LANG=en_US
@@ -15,16 +15,16 @@ count=5
 usage()
 {
     echo "Usage: $program [-n nothing] [-m truncate|move] [-s minsize] [-z count] filename"
-    echo "  -n         - show the plan but doing nothing exactlly"
-    echo "  -m mode    - backup files using copy-truncate mode or move-newfile mode"
-    echo "             - default is move, DO NOT use truncate mode on non-linux system"
-    echo "  -s size    - minimal size to rotate, files smaller than the value will not be rotated"
-    echo "             - the size can end with g/m/k, e.g. '-s 10K' or '-s 10m', default is 10K "
-    echo "  -z count   - file.n.gz rotate to file.<n+1>.gz while n>=count"
-    echo "               file.n rotate to file.<n+1> while n<count, default is 5"
-    echo "  filename   - log file names, e.g. '/path/to/file.log' or 'file.log' for current dir"
-    echo "             - please DO enter the full filename partern with no wildcard character "
-    echo "             - e.g. 'rsync.d.log' can NOT be replaced by 'rsync.d.log.' or 'rsync*' "
+    echo "  -n           - show the plan but doing nothing exactlly"
+    echo "  -m, --mode   - backup files using copy-truncate mode or move-newfile mode"
+    echo "               - default is move, DO NOT use truncate mode on non-linux system"
+    echo "  -s, --size   - minimal size to rotate, files smaller than the value will not be rotated"
+    echo "               - the size can end with g/m/k, e.g. '-s 10K' or '-s 10m', default is 10K "
+    echo "  -z, --count  - file.n.gz rotate to file.<n+1>.gz while n>=count"
+    echo "                 file.n rotate to file.<n+1> while n<count, default is 5"
+    echo "  filename     - log file names, e.g. '/path/to/file.log' or 'file.log' for current dir"
+    echo "               - please DO enter the full filename partern with no wildcard character "
+    echo "               - e.g. 'rsync.d.log' can NOT be replaced by 'rsync.d.log.' or 'rsync*' "
 }
 
 check_option()
@@ -77,9 +77,9 @@ check_file()
 {
     #check if the files in list exist
     if [ -e "$filename" ] && [ -f "$filename" ]; then
-        echo -e "file $filename check pass\n"
+        echo -e "file $filename check pass"
     else
-        echo -e "file $filename not exist or not regular file, jump over\n"; exit 1
+        echo -e "file $filename not exist or not regular file, jump over"; exit 1
     fi
 
     #check if the files in list smaller than the minsize to rotate
@@ -153,6 +153,7 @@ process_gzip()
         execute_gzip
     fi
 }
+
 #main entrance of the script
 while getopts ":nm:s:z:h-:" optname
 do
@@ -160,14 +161,14 @@ do
 	    -) #parse long option by a hacking way, copy from stackoverflow
 	        case "${OPTARG}" in
 	            mode)
-	                mode="${!OPTIND}"; OPTIND=$(($OPTIND+1)) ;;
+	                eval 'mode=${'"$((OPTIND))"'}'; OPTIND=$(($OPTIND+1)) ;;
 	            size)
-	                minsize="${!OPTIND}"; OPTIND=$(($OPTIND+1)) ;;
+	                eval 'minsize=${'"$((OPTIND))"'}'; OPTIND=$(($OPTIND+1)) ;;
 	            count)
-	                count="${!OPTIND}"; OPTIND=$(($OPTIND+1)) ;;
+	                eval 'count=${'"$((OPTIND))"'}'; OPTIND=$(($OPTIND+1)) ;;
 	            *)	echo "Unknown error while processing options"; usage; exit 1 ;;
 	        esac;;
-        "n")    nothing=1; echo -e "Option $optname is specified, the $program will actually doing nothing\n" ;;
+        "n")    nothing=1; echo -e "\nOption $optname is specified, the $program will actually doing nothing" ;;
         "m")    mode=$OPTARG ;;
         "s")    minsize=$OPTARG ;;
         "z")    count=$OPTARG ;;
@@ -184,39 +185,44 @@ shift $(($OPTIND - 1))
 #main options check
 check_option
 
-#check file existence and size, will not go into main loop if failed
-filename=$1
-prefix=$1
-check_file $filename
+while [ $# -gt 0 ]; do
 
-#main loop, to rotate the files
-get_total_file
-filenumber=$((filetotal-1))
+	#check file existence and size, will not go into main loop if failed
+	filename=$1
+	prefix=$1
+	check_file $filename
 
-#main loop, to rotate the files
-while [ $filenumber -gt 0 ];
-do
-    process_rotate $filenumber
-    filenumber=$((filenumber-1))
-    #count down the filenumber when execute success
+	#main loop, to rotate the files
+	get_total_file
+	filenumber=$((filetotal-1))
+
+	#main loop, to rotate the files
+	while [ $filenumber -gt 0 ];
+	do
+	    process_rotate $filenumber
+	    filenumber=$((filenumber-1))
+	    #count down the filenumber when execute success
+	done
+
+	#process the origin file without number
+	filenumber=""
+	process_rotate $filenumber
+
+	#a rotate loop make uncopressed file number+1
+	ungztotal=$((ungztotal+1))
+
+	#second loop to gzip the files
+	filenumber=$((ungztotal-1))
+
+	until [ $filenumber -lt $count ];
+	do
+	    process_gzip $filenumber
+	    filenumber=$((filenumber-1))
+	done
+
+	get_total_file
+	#process next filename pattern
+	shift
 done
-
-#process the origin file without number
-filenumber=""
-process_rotate $filenumber
-
-#a rotate loop make uncopressed file number+1
-ungztotal=$((ungztotal+1))
-
-#second loop to gzip the files
-filenumber=$((ungztotal-1))
-
-until [ $filenumber -lt $count ];
-do
-    process_gzip $filenumber
-    filenumber=$((filenumber-1))
-done
-
-get_total_file
 
 exit 0
