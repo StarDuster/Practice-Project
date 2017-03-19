@@ -10,10 +10,13 @@ from cmd2 import Cmd
 
 class KvClient(Cmd):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    data_dic = {}
+    #full format {'command':'', 'key':'', 'value':'', 'url':'','username':'', 'password':'', 'cookie':''}
 
     def __init__(self):
+        """Constructor"""
         Cmd.__init__(self)
-        self.prompt = '(kvclient)> '
+        self.prompt = '(kvclient) '
         self.intro = "Welcome to fake-redis, a useless kv storage service"
         server_address = (str(HOST), int(PORT))
         print('connecting to {} port {}'.format(*server_address))
@@ -24,20 +27,35 @@ class KvClient(Cmd):
             exit(1)
 
     def do_set(self, line):
-        data_str = str(line)
-        self.send_data(data_str)
+        args = str(line).split()
+        self.data_dic['command'] = 'set'
+        self.data_dic['key'] = str(args[0])
+        self.data_dic['value'] = str(args[1])
+        self.send_data(self.data_dic)
 
     def do_get(self, line):
-        self.send_data(line)
+        args = str(line).split()
+        self.data_dic['command'] = 'get'
+        self.data_dic['key'] = str(args[0])
+        self.send_data(self.data_dic)
 
     def do_auth(self, line):
-        self.send_data(line)
+        args = str(line).split()
+        self.data_dic['command'] = 'auth'
+        self.data_dic['username'] = str(args[0])
+        self.data_dic['password'] = str(args[1])
+        self.send_data(self.data_dic)
 
     def do_url(self, line):
-        self.send_data(line)
+        args = str(line).split()
+        self.data_dic['command'] = 'url'
+        self.data_dic['key'] = str(args[0])
+        self.data_dic['url'] = str(args[1])
+        self.send_data(self.data_dic)
 
-    def send_data(self, data_str):
-        message = pickle.dumps(data_str)
+    def send_data(self, data):
+        """Pickle data, then send data via socket"""
+        message = pickle.dumps(data)
         print('sending {!r}'.format(message))
         self.sock.sendall(message)
         recv_data = self.sock.recv(1024)
