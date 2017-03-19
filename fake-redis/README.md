@@ -98,7 +98,7 @@ Received sina.com
 * 没有销毁断开连接客户端的 cookie，由于 cookie 生成带时间戳，理论不会重复，但是会引起内存泄露
 * 客户端没有捕获 Ctrl+C，也没有监测链接状态，服务端挂掉之后客户端不会有反应
 
-##参考
+## 参考
 
 * Python 核心编程
 * [PYMOTW](https://pymotw.com/3/)
