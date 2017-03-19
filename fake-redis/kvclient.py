@@ -12,6 +12,7 @@ class KvClient(Cmd):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     data_dic = {}
     #full format {'command':'', 'key':'', 'value':'', 'url':'','username':'', 'password':'', 'cookie':''}
+    cookie = ""
 
     def __init__(self):
         """Constructor"""
@@ -54,16 +55,20 @@ class KvClient(Cmd):
         self.send_data(self.data_dic)
 
     def send_data(self, data):
-        """Pickle data, then send data via socket"""
+        self.data_dic['cookie'] = self.cookie
         message = pickle.dumps(data)
-        print('sending {!r}'.format(message))
+        #DEBUG print('sending {!r}'.format(message))
         self.sock.sendall(message)
         recv_data = self.sock.recv(1024)
         print('Received', pickle.loads(recv_data))
-
+        try:
+            if pickle.loads(recv_data)['cookie'] is not None:
+                self.cookie = pickle.loads(recv_data)['cookie']
+        except KeyError and TypeError:
+            pass
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='this is description test')
+    parser = argparse.ArgumentParser(description='set bind address')
     parser.add_argument('--port', dest='port',
                         help='server port to connect')
     parser.add_argument('--host', dest='host',
