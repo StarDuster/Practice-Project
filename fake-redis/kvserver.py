@@ -5,16 +5,16 @@ import selectors
 import socket
 import pickle
 import argparse
-import requests
 import hashlib
 import time
+import requests
 
 sel = selectors.DefaultSelector()
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# global database
-database = {}
-passwd_list = {}
+database_dict = {}
+password_dict = {}
 cookie_list = []
+
 
 def accept(sock, mask):
     conn, addr = sock.accept()
@@ -22,24 +22,25 @@ def accept(sock, mask):
     conn.setblocking(False)
     sel.register(conn, selectors.EVENT_READ, read)
 
+
 def read(conn, mask):
     data_recv = conn.recv(1000)
     if data_recv:
         data_send = parse_data(pickle.loads(data_recv))
-        #DEBUG print('echoing', pickle.loads(date_recv), 'to', conn)
         conn.send(pickle.dumps(data_send))
     else:
         print('closing', conn)
         sel.unregister(conn)
         conn.close()
 
+
 def parse_data(data):
     if data['command'] == 'set':
-        database[data['key']] = data['value']
+        database_dict[data['key']] = data['value']
         return "done!"
 
     if data['command'] == 'get':
-        return database[data['key']]
+        return database_dict[data['key']]
 
     if data['command'] == 'auth':
         return do_auth(data)
@@ -49,10 +50,11 @@ def parse_data(data):
             return "not authed"
         url_result = get_url(data['url'])
         if url_result is not None:
-            database[data['key']] = url_result
+            database_dict[data['key']] = url_result
             return "done!"
         else:
             return "url get fail!"
+
 
 def get_url(url):
     try:
@@ -66,10 +68,11 @@ def get_url(url):
         value = 'length: None ' + ', code: ' + str(r.status_code)
     return value
 
+
 def do_auth(data):
     username = data['username']
     password = data['password']
-    if ( username in passwd_list and passwd_list[username] == password ):
+    if username in password_dict and password_dict[username] == password:
         m = hashlib.md5()
         m.update((str(time.time()) + username).encode('utf-8'))
         cookie = m.hexdigest()[:8]
@@ -78,29 +81,24 @@ def do_auth(data):
     else:
         return "auth fail"
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description='set bind address')
-    parser.add_argument('--port', dest='port',
+    parser.add_argument('--port', dest='port', default=5678,
                         help='server port to connect')
-    parser.add_argument('--host', dest='host',
+    parser.add_argument('--host', dest='host', default='127.0.0.1',
                         help='the server ip')
-    args = parser.parse_args()
-    return (args.host, args.port)
+    return parser.parse_args()
+
 
 def main():
-    params = parse_args()
-    with open('./auth.conf', 'r') as f:
-        for line in f.readlines():
+    with open('./auth.conf', 'r') as config_file:
+        for line in config_file.readlines():
             username, password = line.strip('\n').split(':')
-            passwd_list[username] = password
+            password_dict[username] = password
 
-    HOST = params[0]
-    PORT = params[1]
-    if (HOST is None or PORT is None):
-        HOST = '127.0.0.1'
-        PORT = 5678
-
-    server_address = (str(HOST), int(PORT))
+    args = parse_args()
+    server_address = (str(args.host), int(args.port))
     sock.bind(server_address)
     sock.listen(100)
     sock.setblocking(False)
